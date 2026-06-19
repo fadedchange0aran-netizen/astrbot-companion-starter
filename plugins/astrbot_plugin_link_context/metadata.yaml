@@ -1,0 +1,8 @@
+name: astrbot_plugin_link_context
+display_name: 链接理解与工具感知
+desc: "给机器人提供 B站/小红书链接理解工具，并记住最近一次成功工具结果。"
+version: "0.1.0"
+author: "fadedchange0aran-netizen"
+repo: "https://github.com/fadedchange0aran-netizen/astrbot-companion-starter"
+type: common
+astrbot_version: ">=4.18.2"

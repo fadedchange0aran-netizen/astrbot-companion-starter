@@ -1,0 +1,47 @@
+{
+  "awareness_window_minutes": {
+    "description": "最近完成事项提示保留时长（分钟）",
+    "type": "int",
+    "default": 30
+  },
+  "inject_recent_tool_context": {
+    "description": "在下一轮请求里注入最近一次成功工具结果",
+    "type": "bool",
+    "default": true
+  },
+  "max_recent_actions": {
+    "description": "每个会话最多保留几条最近完成事项",
+    "type": "int",
+    "default": 3
+  },
+  "max_injected_action_length": {
+    "description": "注入提示词时每条最近事项的最大长度",
+    "type": "int",
+    "default": 160
+  },
+  "auto_parse_links_on_request": {
+    "description": "用户消息里出现 B站/小红书链接时，自动解析并注入当前请求上下文",
+    "type": "bool",
+    "default": true
+  },
+  "max_links_per_call": {
+    "description": "单次链接理解最多解析几条链接",
+    "type": "int",
+    "default": 2
+  },
+  "max_desc_length": {
+    "description": "文案摘要最大长度",
+    "type": "int",
+    "default": 280
+  },
+  "max_hot_comments": {
+    "description": "每条链接最多保留几条热评",
+    "type": "int",
+    "default": 2
+  },
+  "max_comment_length": {
+    "description": "单条热评最大长度",
+    "type": "int",
+    "default": 90
+  }
+}
