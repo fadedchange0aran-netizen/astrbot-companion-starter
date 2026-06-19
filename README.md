@@ -65,6 +65,7 @@ plugins/
     astrbot_plugin_media_parser/
     astrbot_plugin_continuous_message/
 docs/
+tools/
 ```
 
 ## 许可说明

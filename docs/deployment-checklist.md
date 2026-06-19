@@ -86,6 +86,7 @@ data/plugin_data/astrbot_plugin_livingmemory/livingmemory.db
 更详细说明见：
 
 - [旧记忆导入](legacy-memory-import.md)
+- [MemOS / Memos 全量迁移](memos-migration.md)
 
 ## 6. 思考链显示检查
 

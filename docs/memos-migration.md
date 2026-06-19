@@ -1,108 +1,331 @@
-# MemOS / Memos 迁移
+# MemOS / Memos 全量迁移到 LivingMemory
 
-如果她之前的 AI 记忆主要在 MemOS / Memos 体系里，可以按下面两条思路迁移。
+这份文档面向一种明确诉求：
 
-## 先区分两种情况
+- 不想继续保留 MemOS / Memos 当旧记忆源
+- 想把旧记忆一次性迁到 `LivingMemory`
+- 后续只维护 `AstrBot + LivingMemory`
 
-### 情况 A：她还在继续用 MemOS MCP
+先说结论：
 
-这时最简单，不需要先“导出成文件再导入”。
+1. 先冻结旧 MemOS 写入
+2. 把旧记忆完整导出
+3. 转成中间 JSONL 导入包
+4. 用本仓库的导入脚本写入 `livingmemory.db`
+5. 执行 `/lmem rebuild-index` 和 `/lmem rebuild-graph`
 
-直接继续配置 MemOS MCP，让新机器人继续读写原来的记忆空间即可。
+## 迁移前要接受的一件事
 
-公开文档里给了 MCP 配置方式，核心环境变量是：
+这次迁移的目标不是“1:1 保留 MemOS 内部结构和调度细节”，而是：
+
+- 保留旧记忆的文本内容
+- 尽量保留时间、来源、标签、会话线索
+- 把它们落进 `LivingMemory` 的 `documents` 主表
+- 让后续检索、图谱和群聊 / 私聊记忆都统一走 `LivingMemory`
+
+也就是说：
+
+- MemOS 的 memory cube / 调度层 / 内部索引不会原样搬过来
+- 但用户可感知的长期记忆内容，是可以整批迁过来的
+
+## 0. 迁移前准备
+
+至少先确认这几件事：
+
+- 旧侧停止继续写入 MemOS
+- 旧侧已经做过备份
+- 新侧 `LivingMemory` 已经安装并能正常启动
+- 你已经确定新的 `owner_id`
+- 你已经确定新的 `persona_id`
+
+如果她后续只服务一个人，最重要的是：
+
+- `owner_id` 保持稳定
+- 不要今天叫 `alice`，明天又换成 `alice_phone`
+
+## 1. 先备份旧侧和新侧
+
+最少备份下面这些东西：
+
+- MemOS / Memos 原始导出文件
+- 如果是自托管 MOS，再备份整个 memory cube 目录
+- 新实例当前的 `livingmemory.db`
+
+如果新实例已经跑过几天，建议先把新侧也备份一份，避免导入失败后没法回滚。
+
+## 2. 从 MemOS / Memos 导出旧记忆
+
+### 路线 A：她用的是 MemOS Cloud / API
+
+优先拿到：
 
 - `MEMOS_API_KEY`
-- `MEMOS_USER_ID`
-- `MEMOS_CHANNEL`
+- 原来的 `MEMOS_USER_ID`
+- 如果有 cube 维度，再拿 `mem_cube_id`
 
-其中最重要的是：
+导出目标是“拿到当前用户的完整记忆列表”。
 
-- `MEMOS_USER_ID` 必须保持稳定
-- 不要换成随机值、设备 ID 或会话 ID
+如果她手里只有 MCP 配置，没有后台导出权限，要先补拿：
 
-只要继续沿用原来的 `MEMOS_USER_ID`，新的客户端 / 机器人就还是在读同一个人的记忆。
+- Cloud API 权限
+- 或者旧应用本身保留的原始导出能力
 
-## 情况 B：她想从 MemOS 迁到本地记忆体系
+原因很简单：
 
-这种情况下不要纠结“直接一键导库”。
+- MCP 常用的是 `add_message` / `search_memory`
+- 这适合日常读写，不适合做完整 dump
 
-更稳的做法是分两步：
+### 路线 B：她用的是自托管 MOS
 
-1. 先从 MemOS 导出原始记忆或对话
-2. 再把它整理后导入新的记忆系统
+这时更直接，优先走开源 MOS 自己的导出能力：
 
-## MemOS 官方口径里能做什么
+- `memory.dump(...)`
+- `get_all(...)`
+- `register_mem_cube(...)` 对应的 cube 目录
 
-### Cloud / API 侧
+如果已经能直接访问 memory cube 目录，先做一份原样备份，再继续后面的转换。
 
-MemOS Cloud 文档给了原始消息写入与检索接口，例如：
+## 3. 转成中间 JSONL 导入包
 
-- `add_message`
-- `search_memory`
+本仓库提供的导入脚本不直接吃 MemOS 原始格式，而是吃一个统一的 JSONL：
 
-也就是说，如果她手里还有原始聊天记录，可以直接按消息批次重新写入新的 MemOS 空间，或者整理后再转存到别的记忆系统。
+```text
+tools/import_jsonl_to_livingmemory.py
+```
 
-### 开源 MOS 侧
+每一行一个 JSON 对象，推荐最少包含这些字段：
 
-开源 MOS API 文档里有 `Dumping Memories` 概念，可以把 memory cube 导到目录里做持久化备份，然后再通过 `register_mem_cube(...)` 在新环境注册。
+```json
+{
+  "doc_id": "memos-user-123-0001",
+  "text": "用户长期偏好简短回复，不喜欢很长的解释。",
+  "owner_id": "alice",
+  "persona_id": "default",
+  "session_id": "memos:conversation:0610",
+  "source_platform": "memos_cloud",
+  "source_session": "0610",
+  "importance": 0.8,
+  "created_at": "2026-06-10T12:00:00+00:00",
+  "updated_at": "2026-06-10T12:00:00+00:00",
+  "metadata": {
+    "tags": ["preference", "reply_style"],
+    "legacy_memory_id": "abc123"
+  }
+}
+```
 
-这条路线更适合：
+注意：
 
-- 她自己部署过开源 MemOS / MOS
-- 她手里能接触到底层 memory cube
+- `text` 是真正要迁过去的记忆正文
+- `importance` 可以写 `0-1`，也可以写 `0-10`
+- `metadata` 里的额外字段会原样保留
+- `doc_id` 最好稳定，不要每次转换都变
 
-## 我建议她怎么迁
+## 4. 一个通用转换思路
 
-### 方案 1：继续用 MemOS，当成旧记忆源
+不同 MemOS 部署导出的 JSON 结构不完全一样，所以推荐先做“导出 JSON -> 标准 JSONL”这一步。
 
-适合：
+下面这个模板适合大多数情况：你只需要把 `items = ...` 那一行改成自己的真实导出结构。
 
-- 她原来就是用 MemOS Cloud / MCP
-- 她暂时不想把旧记忆迁到 `LivingMemory`
+```python
+import json
+from pathlib import Path
 
-做法：
 
-1. 在新客户端继续配置同一个 `MEMOS_API_KEY`
-2. 保持原来的 `MEMOS_USER_ID`
-3. 验证 `search_memory` 和 `add_message` 正常
+def first_non_empty(*values):
+    for value in values:
+        if value is None:
+            continue
+        text = str(value).strip()
+        if text:
+            return text
+    return ""
 
-这样旧记忆不用搬家，机器人也能继续接着用。
 
-### 方案 2：把 MemOS 里的关键记忆筛出来，人工迁入 LivingMemory
+source = json.loads(Path("memos_export.json").read_text(encoding="utf-8"))
 
-适合：
+# 按你的真实导出结构改这里：
+items = source.get("data", source)
+if isinstance(items, dict):
+    items = items.get("items") or items.get("memories") or items.get("data") or []
 
-- 她想把陪伴机器人逐步切到 AstrBot + LivingMemory
-- 她不想把 MemOS 整套链路永久保留
+rows = []
+for index, item in enumerate(items, start=1):
+    metadata = item.get("metadata") if isinstance(item.get("metadata"), dict) else {}
+    text = first_non_empty(
+        item.get("text"),
+        item.get("memory"),
+        item.get("content"),
+        item.get("memory_value"),
+        metadata.get("text"),
+        metadata.get("memory"),
+        metadata.get("content"),
+    )
+    if not text:
+        continue
 
-做法：
+    rows.append(
+        {
+            "doc_id": first_non_empty(item.get("id"), item.get("memory_id")) or f"memos-{index}",
+            "text": text,
+            "session_id": first_non_empty(
+                item.get("conversation_id"),
+                item.get("session_id"),
+                metadata.get("conversation_id"),
+            ) or f"memos:import:{index}",
+            "source_platform": first_non_empty(
+                item.get("source_platform"),
+                item.get("platform"),
+            ) or "memos_cloud",
+            "source_session": first_non_empty(
+                item.get("conversation_id"),
+                item.get("session_id"),
+            ) or f"memos:import:{index}",
+            "importance": item.get("importance", metadata.get("importance", 0.65)),
+            "created_at": first_non_empty(item.get("created_at"), item.get("timestamp")),
+            "updated_at": first_non_empty(item.get("updated_at"), item.get("timestamp")),
+            "metadata": {
+                "legacy_memory_id": first_non_empty(item.get("id"), item.get("memory_id")),
+                "legacy_tags": item.get("tags") or metadata.get("tags") or [],
+                "legacy_type": first_non_empty(item.get("type"), metadata.get("type")),
+                "migrated_from": "memos_export",
+            },
+        }
+    )
 
-1. 先在 MemOS 里检索关键记忆
-2. 把高价值事实、人物关系、偏好、纪念日、长期项目整理出来
-3. 作为结构化文本或人工整理条目导入新的 `LivingMemory`
+with Path("livingmemory-import.jsonl").open("w", encoding="utf-8") as fp:
+    for row in rows:
+        fp.write(json.dumps(row, ensure_ascii=False) + "\n")
+```
 
-这条路线最慢，但最干净，也最适合“陪伴型”长期记忆。
+## 5. 如果她是自托管 MOS，可以直接从 `get_all()` 转
 
-### 方案 3：如果她部署的是开源 MOS，就先 dump 再注册
+如果她能跑 Python 并直接访问自托管 MOS，可以直接把 `get_all()` 结果写成 JSONL：
 
-适合：
+```python
+import json
+from pathlib import Path
 
-- 她用的是开源 MemOS / MOS
-- 她对服务端有控制权
+from memos import MOS
+from memos.configs.mem_os import MOSConfig
 
-可以参考官方的 `Dumping Memories` / `register_mem_cube(...)` 口径，先做本地导出，再在新环境恢复。
 
-## 实操建议
+config = MOSConfig.from_json_file("path/to/mos_config.json")
+memory = MOS(config)
+items = memory.get_all(mem_cube_id="your_cube_id", user_id="your_user_id")
 
-如果她之前说的“记忆在 memos 上”更接近 MCP / Cloud 用法，我建议她先这样走：
+with Path("livingmemory-import.jsonl").open("w", encoding="utf-8") as fp:
+    for index, item in enumerate(items, start=1):
+        text = str(getattr(item, "memory", "") or getattr(item, "text", "")).strip()
+        if not text:
+            continue
+        fp.write(
+            json.dumps(
+                {
+                    "doc_id": f"mos-{index}",
+                    "text": text,
+                    "session_id": f"mos:import:{index}",
+                    "source_platform": "mos",
+                    "source_session": f"mos:import:{index}",
+                    "importance": 0.65,
+                    "metadata": {
+                        "migrated_from": "mos_get_all",
+                    },
+                },
+                ensure_ascii=False,
+            )
+            + "\n"
+        )
+```
 
-1. 先继续保留 MemOS MCP
-2. 先把 AstrBot 这套最小体验跑通
-3. 只把最重要的人设关系、偏好和关键历史手动迁到 `LivingMemory`
-4. 后面再决定是否彻底把 MemOS 记忆迁完
+这段代码是模板，字段名可能要按她自己的 MemOS 版本稍微改一下。
 
-这样不会卡在“一次性大迁移”。
+## 6. 先 dry-run 导入到 LivingMemory
+
+导入脚本位置：
+
+```text
+tools/import_jsonl_to_livingmemory.py
+```
+
+先 dry-run：
+
+```bash
+python3 tools/import_jsonl_to_livingmemory.py \
+  --source /path/to/livingmemory-import.jsonl \
+  --livingmemory-db /path/to/data/plugin_data/astrbot_plugin_livingmemory/livingmemory.db \
+  --owner-id alice \
+  --persona-id default \
+  --report-path /path/to/livingmemory-import-report.json \
+  --dry-run
+```
+
+先看这几个结果：
+
+- `parsed_rows` 是否接近预期
+- `error_count` 是否为 0
+- `errors_preview` 里有没有大量空文本或字段缺失
+
+## 7. 确认数量后正式导入
+
+```bash
+python3 tools/import_jsonl_to_livingmemory.py \
+  --source /path/to/livingmemory-import.jsonl \
+  --livingmemory-db /path/to/data/plugin_data/astrbot_plugin_livingmemory/livingmemory.db \
+  --owner-id alice \
+  --persona-id default \
+  --report-path /path/to/livingmemory-import-report.json
+```
+
+如果你打算重复执行同一份导入包，并且希望相同 `doc_id` 直接覆盖，带上：
+
+```bash
+--upsert-doc-id
+```
+
+## 8. 导入后必须重建索引
+
+这一步不能省。
+
+导入脚本只是把文本和 metadata 写进 `LivingMemory` 的 `documents` 表，后续检索和图谱还要重建。
+
+在 AstrBot 中执行：
+
+```text
+/lmem rebuild-index
+/lmem rebuild-graph
+```
+
+## 9. 导入后怎么验收
+
+至少做这几步：
+
+1. `/lmem status`
+2. `/lmem search 她确定旧库里存在的关键词`
+3. 打开 `LivingMemory` WebUI 看记忆总数是否明显增长
+4. 让机器人围绕旧偏好 / 旧人物关系自然聊几轮
+5. 观察是否能从旧记忆中稳定召回
+
+## 10. 迁移后建议立刻做的清理
+
+全量迁过来以后，通常还要做一轮轻整理：
+
+- 删除明显重复条目
+- 把极长导入文本拆短
+- 给超泛化的“总结型大记忆”降重要性
+
+这是正常现象，不代表迁移失败。
+
+因为：
+
+- MemOS 和 `LivingMemory` 的记忆粒度本来就不完全一致
+- 同一段旧记忆在新系统里，可能更适合拆成多条
+
+## 11. 如果原来就是 LivingMemory
+
+如果她原来的旧记忆已经是 `LivingMemory` 数据库，不要走这份文档，直接看：
+
+- [旧记忆导入](legacy-memory-import.md)
 
 ## 外部参考
 

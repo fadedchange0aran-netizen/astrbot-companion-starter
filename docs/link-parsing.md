@@ -107,4 +107,4 @@ qq_card_disabled_platforms = ["bilibili", "xhs"]
 
 ### 群里要 @ 才回复
 
-这不一定是解析链坏了，也可能是该群不在 AstrBot 主动回复白名单里。*** End Patch
+这不一定是解析链坏了，也可能是该群不在 AstrBot 主动回复白名单里。

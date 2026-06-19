@@ -24,6 +24,7 @@
 
 - [记忆配置](memory-setup.md)
 - [旧记忆导入](legacy-memory-import.md)
+- [MemOS / Memos 全量迁移](memos-migration.md)
 
 ## 2. 安装链接体验插件
 

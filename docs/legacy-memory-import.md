@@ -111,4 +111,8 @@ data/plugin_data/astrbot_plugin_livingmemory/backups/livingmemory_backup_<timest
 
 ## 这份文档和官方记忆仓的关系
 
-`LivingMemory` 公开仓已经有安装、配置和版本恢复说明，但这份 starter 文档额外补了“旧实例迁移”的操作顺序，方便第一次搬家的人直接照着做。*** End Patch
+`LivingMemory` 公开仓已经有安装、配置和版本恢复说明，但这份 starter 文档额外补了“旧实例迁移”的操作顺序，方便第一次搬家的人直接照着做。
+
+如果旧记忆不是来自旧 `LivingMemory`，而是来自 MemOS / Memos，请改看：
+
+- [MemOS / Memos 全量迁移](memos-migration.md)
