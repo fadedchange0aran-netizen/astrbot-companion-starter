@@ -35,6 +35,12 @@
 
 重启或重载 AstrBot 后，在插件页面确认这三个插件都已加载。
 
+如果你的 AstrBot 真源和运行目录分离，建议始终遵守这个口径：
+
+- Git 真源里保留插件源码
+- 运行时只放同步后的副本
+- 不要直接在运行目录里长期手改插件
+
 ## 3. 推荐先开哪些配置
 
 ### `astrbot_plugin_link_context`
@@ -43,6 +49,11 @@
 
 - `auto_parse_links_on_request = true`
 - `inject_recent_tool_context = true`
+
+如果你希望白名单群里发 B 站 / 小红书链接时，机器人能像私聊一样自动接话：
+
+- 需要把对应群加入 AstrBot 主动回复白名单
+- 同时保证 `link_context` 和链接解析底层插件都已加载
 
 ### `astrbot_plugin_continuous_message`
 
@@ -100,4 +111,16 @@ uvicorn app.main:app --host 0.0.0.0 --port 8001
 4. 发送一条小红书链接，机器人是否能接着聊内容
 5. 发送 QQ 卡片，看是否能成功提链
 
-如果上面五步都通过，这套最小体验包就已经基本成型了。*** End Patch
+如果上面五步都通过，这套最小体验包就已经基本成型了。
+
+## 6. 思考链显示建议
+
+如果你同时在用 QQ 和 `adapter` / RikkiHub，建议：
+
+- AstrBot 侧保持 `display_reasoning_text = false`
+- 只在 `adapter` 侧决定是否向前端暴露 reasoning
+
+原因是 AstrBot 这个开关会把思考链直接拼进普通消息链里，容易导致：
+
+- QQ 里把思考链夹进正文
+- `adapter` / RikkiHub 同时看到正文内 reasoning 和独立 reasoning 字段
