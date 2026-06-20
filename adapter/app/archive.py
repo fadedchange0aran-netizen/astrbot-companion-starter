@@ -105,7 +105,7 @@ class TranscriptArchive:
         }
 
     def _session_file_path(self, context: BackendContext) -> Path:
-        owner_dir = self.settings.transcript_root / _safe_part(context.owner_id, "owner")
+        owner_dir = self.settings.transcript_root / _safe_part(context.owner_id, "bia")
         session_name = _safe_part(context.session_id, "session")
         return owner_dir / f"{session_name}.jsonl"
 

@@ -43,20 +43,12 @@ GROUP_DEFAULT_BLOCKED_TOOLS = {
     "send_whisper_to_bia",
     "send_email",
     "send_file_vault_item_via_email",
-    "write_memory_file",
     "write_playground_file",
-    "save_structured_memory",
-    "update_structured_memory",
     "write_notion_page",
     "update_notion_block_tool",
     "delete_notion_block_tool",
     "rename_notion_page_tool",
     "manage_notion_todo_tool",
-    "update_soul",
-    "update_profile",
-    "create_memory",
-    "memory_save",
-    "add_memo_block",
     "llm_publish_feed",
 }
 ROUTE_TOOL_ALLOWLISTS = {
@@ -78,6 +70,10 @@ ROUTE_TOOL_ALLOWLISTS = {
         "play_song_by_name",
         "speak_to_user",
     },
+    "vault": {
+        "write_aran_vault_entry",
+        "read_aran_vault_total",
+    },
     "link": {
         "read_link_context",
     },
@@ -86,6 +82,7 @@ ROUTE_LABELS = {
     "ebook": "电子书路由",
     "bookshelf": "共读/书架路由",
     "music": "音乐路由",
+    "vault": "小金库路由",
     "link": "链接路由",
 }
 ROUTE_FOLLOWUP_PATTERNS = {
@@ -123,6 +120,14 @@ ROUTE_FOLLOWUP_PATTERNS = {
         r"^播这首$",
         r"^放一下$",
     ),
+    "vault": (
+        r"^记一笔$",
+        r"^记进去$",
+        r"^扣一笔$",
+        r"^查一下总额$",
+        r"^现在一共多少钱$",
+        r"^还剩多少$",
+    ),
     "link": (
         r"^这个讲了啥$",
         r"^这条讲了啥$",
@@ -149,6 +154,10 @@ RECENT_FOLLOWUP_PATTERNS = (
     r"下好了没",
     r"发出去了吗",
 )
+DEFAULT_GROUP_NAME_WAKE_ALIASES = (
+    "阿然",
+    "然然",
+)
 
 
 @register(
@@ -166,11 +175,16 @@ class LinkContextPlugin(Star):
         self.state_path = self.data_dir / STATE_FILE_NAME
         self.admin_once_path = self.data_dir / ADMIN_ONCE_FILE_NAME
         self._parser_manager = None
+        self._plugin_config_cache: dict[str, Any] | None = None
+        self._plugin_config_mtime: float | None = None
         self._cmd_config_cache: dict[str, Any] | None = None
         self._cmd_config_mtime: float | None = None
 
     def _get_cfg(self, key: str, default: Any) -> Any:
-        if isinstance(self.config, dict):
+        runtime_config = self._load_plugin_runtime_config()
+        if key in runtime_config:
+            return runtime_config.get(key, default)
+        if isinstance(self.config, dict) and key in self.config:
             return self.config.get(key, default)
         return default
 
@@ -271,6 +285,29 @@ class LinkContextPlugin(Star):
         )
         return any(re.search(pattern, raw, re.IGNORECASE) for pattern in patterns)
 
+    @staticmethod
+    def _looks_like_vault_request(text: str) -> bool:
+        raw = str(text or "").strip().lower()
+        if not raw:
+            return False
+        patterns = (
+            r"小金库",
+            r"金库",
+            r"记一笔",
+            r"记进.*金库",
+            r"扣一笔",
+            r"扣.*元",
+            r"支出",
+            r"存入",
+            r"罚金",
+            r"创收",
+            r"总额",
+            r"一共多少钱",
+            r"还剩多少",
+            r"余额",
+        )
+        return any(re.search(pattern, raw, re.IGNORECASE) for pattern in patterns)
+
     def _detect_tool_route(self, event: AstrMessageEvent, text: str) -> str:
         if self._looks_like_ebook_delivery_request(text):
             return "ebook"
@@ -278,6 +315,8 @@ class LinkContextPlugin(Star):
             return "bookshelf"
         if self._looks_like_music_request(text):
             return "music"
+        if self._looks_like_vault_request(text):
+            return "vault"
         if self._event_contains_supported_link(event):
             return "link"
         recent_followup_route = self._detect_recent_followup_route(event, text)
@@ -364,6 +403,12 @@ class LinkContextPlugin(Star):
             body = (
                 "当前请求已经切到音乐工具路由。"
                 "优先直接用 play_song_by_name 处理点歌或放歌请求，不要改走网页搜索、脚本执行或别的泛工具。"
+            )
+        elif route_name == "vault":
+            body = (
+                "当前请求已经切到小金库工具路由。"
+                "记账时优先用 write_aran_vault_entry，查总额时优先用 read_aran_vault_total。"
+                "不要改走普通 Notion 页面写入，也不要用无关搜索或脚本工具。"
             )
         else:
             body = (
@@ -456,6 +501,9 @@ class LinkContextPlugin(Star):
     def _media_parser_config_path(self) -> Path:
         return self._data_root() / "config" / "astrbot_plugin_media_parser_config.json"
 
+    def _plugin_config_path(self) -> Path:
+        return self._data_root() / "config" / f"{PLUGIN_NAME}_config.json"
+
     def _cmd_config_path(self) -> Path:
         return self._data_root() / "cmd_config.json"
 
@@ -491,7 +539,99 @@ class LinkContextPlugin(Star):
         self._cmd_config_mtime = stat.st_mtime
         return payload
 
+    def _load_plugin_runtime_config(self) -> dict[str, Any]:
+        path = self._plugin_config_path()
+        try:
+            stat = path.stat()
+        except FileNotFoundError:
+            return {}
+        except Exception as exc:
+            logger.warning(f"[{PLUGIN_NAME}] 读取插件配置状态失败: {exc}")
+            return {}
+
+        if (
+            self._plugin_config_cache is not None
+            and self._plugin_config_mtime is not None
+            and self._plugin_config_mtime == stat.st_mtime
+        ):
+            return self._plugin_config_cache
+
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8-sig") or "{}")
+        except Exception as exc:
+            logger.warning(f"[{PLUGIN_NAME}] 读取插件配置失败: {exc}")
+            return {}
+
+        if not isinstance(payload, dict):
+            payload = {}
+        self._plugin_config_cache = payload
+        self._plugin_config_mtime = stat.st_mtime
+        return payload
+
+    def _write_cmd_config(self, payload: dict[str, Any]) -> None:
+        path = self._cmd_config_path()
+        content = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+        path.write_text(content, encoding="utf-8")
+        try:
+            stat = path.stat()
+            self._cmd_config_mtime = stat.st_mtime
+        except Exception:
+            self._cmd_config_mtime = None
+        self._cmd_config_cache = payload
+
+    @staticmethod
+    def _normalize_probability(raw: Any, default: float) -> float:
+        try:
+            value = float(raw)
+        except (TypeError, ValueError):
+            value = default
+        if value < 0.0:
+            return 0.0
+        if value > 1.0:
+            return 1.0
+        return value
+
+    def _configured_group_active_reply_probability(self) -> float:
+        return self._normalize_probability(
+            self._get_cfg("group_active_reply_probability", 0.4),
+            0.4,
+        )
+
+    def _sync_group_active_reply_settings(self) -> None:
+        cmd_config = self._load_cmd_config()
+        if not isinstance(cmd_config, dict):
+            return
+        provider_ltm_settings = cmd_config.setdefault("provider_ltm_settings", {})
+        if not isinstance(provider_ltm_settings, dict):
+            return
+        active_reply = provider_ltm_settings.setdefault("active_reply", {})
+        if not isinstance(active_reply, dict):
+            return
+
+        desired_probability = self._configured_group_active_reply_probability()
+        current_probability = self._normalize_probability(
+            active_reply.get("possibility_reply", desired_probability),
+            desired_probability,
+        )
+        changed = False
+        if active_reply.get("enable") is not True:
+            active_reply["enable"] = True
+            changed = True
+        if str(active_reply.get("method") or "") != "possibility_reply":
+            active_reply["method"] = "possibility_reply"
+            changed = True
+        if abs(current_probability - desired_probability) > 1e-9:
+            active_reply["possibility_reply"] = desired_probability
+            changed = True
+        if changed:
+            self._write_cmd_config(cmd_config)
+            logger.info(
+                f"[{PLUGIN_NAME}] 已同步群聊主动接话概率到 cmd_config: "
+                f"possibility_reply={desired_probability:.2f}"
+            )
+
     def _group_auto_wake_whitelist(self) -> set[str]:
+        self._sync_group_active_reply_settings()
         cmd_config = self._load_cmd_config()
         provider_ltm_settings = cmd_config.get("provider_ltm_settings") or {}
         if not isinstance(provider_ltm_settings, dict):
@@ -503,6 +643,55 @@ class LinkContextPlugin(Star):
         if not isinstance(raw_whitelist, (list, tuple, set)):
             return set()
         return {str(item or "").strip() for item in raw_whitelist if str(item or "").strip()}
+
+    def _group_name_wake_aliases(self) -> tuple[str, ...]:
+        raw_aliases = self._get_cfg("group_name_wake_aliases", list(DEFAULT_GROUP_NAME_WAKE_ALIASES))
+        if isinstance(raw_aliases, str):
+            candidates = re.split(r"[,，、|\n]+", raw_aliases)
+        elif isinstance(raw_aliases, (list, tuple, set)):
+            candidates = raw_aliases
+        else:
+            candidates = []
+
+        aliases: list[str] = []
+        seen: set[str] = set()
+        for item in candidates:
+            alias = str(item or "").strip()
+            if not alias or alias in seen:
+                continue
+            seen.add(alias)
+            aliases.append(alias)
+        if aliases:
+            return tuple(aliases)
+        return DEFAULT_GROUP_NAME_WAKE_ALIASES
+
+    def _text_hits_group_name_wake(self, text: str) -> bool:
+        raw = str(text or "").strip().lower()
+        if not raw:
+            return False
+        return any(alias.lower() in raw for alias in self._group_name_wake_aliases())
+
+    def _first_group_name_wake_candidate(self, event: AstrMessageEvent) -> str:
+        for candidate in self._event_link_inputs(event):
+            text = str(candidate or "").strip()
+            if text and self._text_hits_group_name_wake(text):
+                return text
+        return ""
+
+    @staticmethod
+    def _preserve_original_group_message(event: AstrMessageEvent) -> None:
+        if not hasattr(event, "_aran_original_message_str"):
+            event._aran_original_message_str = str(getattr(event, "message_str", "") or "")
+        if not getattr(event, "_aran_original_raw_message", None) and hasattr(event.message_obj, "raw_message"):
+            try:
+                event._aran_original_raw_message = event.message_obj.raw_message
+            except Exception:
+                pass
+        if not getattr(event, "_aran_original_message_chain", None) and hasattr(event.message_obj, "message"):
+            try:
+                event._aran_original_message_chain = list(event.message_obj.message or [])
+            except Exception:
+                pass
 
     def _load_admin_once_grant(self) -> dict[str, Any]:
         if not self.admin_once_path.exists():
@@ -1902,6 +2091,29 @@ class LinkContextPlugin(Star):
         )
 
     @filter.event_message_type(filter.EventMessageType.GROUP_MESSAGE)
+    async def auto_wake_group_name_message(self, event: AstrMessageEvent):
+        if str(event.get_sender_id() or "").strip() == str(event.get_self_id() or "").strip():
+            return
+        if not bool(self._get_cfg("enable_group_name_auto_wake", True)):
+            return
+        if not self._is_whitelisted_group_link_event(event):
+            return
+        if getattr(event, "is_at_or_wake_command", False):
+            return
+        fallback_message = self._first_group_name_wake_candidate(event)
+        if not fallback_message:
+            return
+        self._preserve_original_group_message(event)
+        if not str(getattr(event, "message_str", "") or "").strip():
+            event.message_str = fallback_message
+        event.is_wake = True
+        event.is_at_or_wake_command = True
+        logger.info(
+            f"[{PLUGIN_NAME}] 白名单群名字命中自动唤醒已触发: "
+            f"{self._session_key(event)} aliases={list(self._group_name_wake_aliases())}"
+        )
+
+    @filter.event_message_type(filter.EventMessageType.GROUP_MESSAGE)
     async def auto_wake_group_link_message(self, event: AstrMessageEvent):
         if str(event.get_sender_id() or "").strip() == str(event.get_self_id() or "").strip():
             return
@@ -1912,18 +2124,7 @@ class LinkContextPlugin(Star):
         fallback_message = self._first_supported_link_candidate(event)
         if not fallback_message:
             return
-        if not hasattr(event, "_aran_original_message_str"):
-            event._aran_original_message_str = str(getattr(event, "message_str", "") or "")
-        if not getattr(event, "_aran_original_raw_message", None) and hasattr(event.message_obj, "raw_message"):
-            try:
-                event._aran_original_raw_message = event.message_obj.raw_message
-            except Exception:
-                pass
-        if not getattr(event, "_aran_original_message_chain", None) and hasattr(event.message_obj, "message"):
-            try:
-                event._aran_original_message_chain = list(event.message_obj.message or [])
-            except Exception:
-                pass
+        self._preserve_original_group_message(event)
         if not str(getattr(event, "message_str", "") or "").strip():
             event.message_str = fallback_message
         event.is_wake = True

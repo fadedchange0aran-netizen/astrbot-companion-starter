@@ -43,5 +43,23 @@
     "description": "单条热评最大长度",
     "type": "int",
     "default": 90
+  },
+  "enable_group_name_auto_wake": {
+    "description": "白名单群里命中机器人名字时，直接按唤醒消息处理",
+    "type": "bool",
+    "default": true
+  },
+  "group_active_reply_probability": {
+    "description": "白名单群普通消息的主动接话概率，范围 0 到 1",
+    "type": "float",
+    "default": 0.4
+  },
+  "group_name_wake_aliases": {
+    "description": "触发群聊名字唤醒的别名列表",
+    "type": "list",
+    "default": [
+      "阿然",
+      "然然"
+    ]
   }
 }

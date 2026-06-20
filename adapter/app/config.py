@@ -131,10 +131,10 @@ def get_settings() -> Settings:
         _env_str("ARAN_MANUAL_BACKUP_ROOT", str(BASE_DIR / "data" / "backups"))
     ).expanduser()
     astrbot_attachments_dir = Path(
-        _env_str("ARAN_ASTRBOT_ATTACHMENTS_DIR", str(BASE_DIR / "data" / "astrbot_attachments"))
+        _env_str("ARAN_ASTRBOT_ATTACHMENTS_DIR", "/srv/aran/data/astrbot/attachments")
     ).expanduser()
     astrbot_data_db_path = Path(
-        _env_str("ARAN_ASTRBOT_DATA_DB_PATH", str(BASE_DIR / "data" / "astrbot" / "data_v4.db"))
+        _env_str("ARAN_ASTRBOT_DATA_DB_PATH", "/srv/aran/data/astrbot/data_v4.db")
     ).expanduser()
     manual_backup_extra_paths = tuple(
         Path(str(item)).expanduser()
@@ -142,7 +142,7 @@ def get_settings() -> Settings:
         if str(item).strip()
     )
     qq_chat_backup_root = Path(
-        _env_str("ARAN_QQ_CHAT_BACKUP_ROOT", str(BASE_DIR / "data" / "qq_chat_backups"))
+        _env_str("ARAN_QQ_CHAT_BACKUP_ROOT", "/srv/aran/data/astrbot/qq_chat_backups")
     ).expanduser()
     qq_chat_backup_sessions = tuple(
         str(item).strip()
@@ -165,10 +165,10 @@ def get_settings() -> Settings:
         upstream_extra_headers=normalized_headers,
         astrbot_target_url=_env_str("ARAN_ASTRBOT_TARGET_URL", "").strip(),
         astrbot_api_key=_env_str("ARAN_ASTRBOT_API_KEY", "").strip(),
-        astrbot_username=_env_str("ARAN_ASTRBOT_USERNAME", "assistant").strip() or "assistant",
+        astrbot_username=_env_str("ARAN_ASTRBOT_USERNAME", "bia").strip() or "bia",
         astrbot_config_id=_env_str("ARAN_ASTRBOT_CONFIG_ID", "").strip(),
-        astrbot_bot_id=_env_str("ARAN_ASTRBOT_BOT_ID", "astrbot").strip() or "astrbot",
-        astrbot_platform=_env_str("ARAN_ASTRBOT_PLATFORM", "bridge").strip() or "bridge",
+        astrbot_bot_id=_env_str("ARAN_ASTRBOT_BOT_ID", "aran").strip() or "aran",
+        astrbot_platform=_env_str("ARAN_ASTRBOT_PLATFORM", "aran_bridge").strip() or "aran_bridge",
         astrbot_public_base_url=_env_str("ARAN_ASTRBOT_PUBLIC_BASE_URL", "").strip().rstrip("/"),
         astrbot_attachments_dir=astrbot_attachments_dir,
         astrbot_data_db_path=astrbot_data_db_path,

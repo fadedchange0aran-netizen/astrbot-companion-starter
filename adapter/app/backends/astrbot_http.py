@@ -432,6 +432,9 @@ class AstrBotHttpBackend(AdapterBackend):
         }
         if selected_model and selected_model not in bot_aliases:
             body["selected_model"] = selected_model
+        selected_provider = str(metadata.get("astrbot_selected_provider") or "").strip()
+        if selected_provider:
+            body["selected_provider"] = selected_provider
         config_id = str(metadata.get("astrbot_config_id") or self.settings.astrbot_config_id).strip()
         if config_id:
             body["config_id"] = config_id

@@ -10,15 +10,28 @@ Current goals:
 - Support OpenAI-compatible frontends
 - Keep backend integration replaceable
 
-## Layout
+## Source Of Truth
 
-- This repository keeps the managed source under `adapter/`.
-- Your live runtime directory can be anywhere, for example:
-  - `/opt/aran-adapter`
-  - `/srv/bot/adapter`
-- Treat `.env`, `.venv`, `data/`, and `.dbg` as runtime-only paths.
-- If you hotfix the runtime copy first, backfill the changes into this repo and
-  then redeploy from here.
+- Git source of truth:
+  - `/srv/aran/app/aran-astrbot-stack/adapter`
+- Live runtime copy:
+  - `/srv/aran/apps/adapter`
+- Normal development rule:
+  - edit the Git source first
+  - then sync into the live runtime copy with:
+
+```bash
+bash /srv/aran/app/aran-astrbot-stack/deploy/scripts/sync-adapter.sh
+```
+
+- Do not treat these live-only paths as Git source:
+  - `/srv/aran/apps/adapter/.env`
+  - `/srv/aran/apps/adapter/.venv`
+  - `/srv/aran/apps/adapter/.dbg`
+
+- If the live runtime copy is hotfixed first:
+  - backfill the managed source in `adapter/`
+  - then re-run `sync-adapter.sh`
 
 Supported routes:
 
@@ -59,7 +72,7 @@ Recommended settings:
 
 - `ARAN_ASTRBOT_TARGET_URL=http://127.0.0.1:6185/api/v1/chat`
 - `ARAN_ASTRBOT_API_KEY=<astrbot_api_key>`
-- `ARAN_ASTRBOT_USERNAME=assistant`
+- `ARAN_ASTRBOT_USERNAME=bia`
 
 Notes:
 
@@ -107,11 +120,11 @@ files. This archive is meant for backup and audit, not for model context.
 Recommended settings:
 
 - `ARAN_TRANSCRIPT_ENABLED=true`
-- `ARAN_TRANSCRIPT_ROOT=./data/transcripts`
-- `ARAN_MANUAL_BACKUP_ROOT=./data/backups`
-- `ARAN_MANUAL_BACKUP_EXTRA_PATHS_JSON=[]`
-- `ARAN_ASTRBOT_DATA_DB_PATH=./data/astrbot/data_v4.db`
-- `ARAN_QQ_CHAT_BACKUP_ROOT=./data/qq_chat_backups`
+- `ARAN_TRANSCRIPT_ROOT=/srv/aran/data/adapter/transcripts`
+- `ARAN_MANUAL_BACKUP_ROOT=/srv/aran/data/adapter/backups`
+- `ARAN_MANUAL_BACKUP_EXTRA_PATHS_JSON=["/srv/aran/data/astrbot/plugin_data/astrbot_plugin_livingmemory","/srv/aran/data/astrbot/file_vault"]`
+- `ARAN_ASTRBOT_DATA_DB_PATH=/srv/aran/data/astrbot/data_v4.db`
+- `ARAN_QQ_CHAT_BACKUP_ROOT=/srv/aran/data/astrbot/qq_chat_backups`
 - `ARAN_QQ_CHAT_BACKUP_SESSIONS_JSON=[]`
 
 The archive captures:
@@ -156,14 +169,6 @@ pip install -r requirements.txt
 
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8001
-```
-
-5. Point your frontend to one of these routes:
-
-```text
-/v1/chat/completions
-/chat/completions
-/api/v1/chat/completions
 ```
 
 ## Suggested First Deployment
