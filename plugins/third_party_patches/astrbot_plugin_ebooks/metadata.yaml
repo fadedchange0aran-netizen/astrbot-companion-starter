@@ -1,0 +1,6 @@
+name: astrbot_plugin_ebooks
+desc: 多源电子书搜索下载插件（公开 patch 版）
+help: 输入 /ebooks help 查看关键词回复帮助。
+version: v2.0.1
+author: Companion Starter Maintainers
+repo: https://github.com/zouyonghe/astrbot_plugin_opds

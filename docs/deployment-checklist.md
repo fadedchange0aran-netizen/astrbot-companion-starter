@@ -111,3 +111,18 @@ data/plugin_data/astrbot_plugin_livingmemory/livingmemory.db
 4. 私聊小红书链接解析
 5. 群里白名单链接自动接话
 6. `LivingMemory` 搜索旧记忆
+
+## 8. 可选组件检查
+
+如果你额外启用了 `bridges/stackchan`：
+
+1. `STACKCHAN_*` 环境变量已填写
+2. `adapter` 地址和 token 可用
+3. 桥接服务能正常启动
+
+如果你额外启用了 `services/aranbox-mcp`：
+
+1. `ARANBOX_ENABLED_TOOL_LAYERS_JSON` 先保持 `["daily","extended"]`
+2. `ARANBOX_SAFE_DEPLOY_ENABLED=false`
+3. `ARANBOX_DEFAULT_OWNER_ID` 已改成你自己的值
+4. `./runtime/` 下的路径已按你的环境调整

@@ -58,8 +58,20 @@
     "description": "触发群聊名字唤醒的别名列表",
     "type": "list",
     "default": [
-      "阿然",
-      "然然"
+      "机器人",
+      "助手"
     ]
+  },
+  "admin_once_allowed_sender_ids": {
+    "description": "允许执行 /管理一轮、/取消管理授权、/管理授权状态 的 sender_id 列表",
+    "type": "string",
+    "hint": "填逗号分隔的 sender_id。留空时会回退复用 astrbot_plugin_safe_deploy_control 的 allowed_sender_ids。",
+    "default": ""
+  },
+  "admin_once_allow_anyone": {
+    "description": "允许所有人操作一次性管理授权",
+    "type": "bool",
+    "hint": "仅用于临时调试。生产环境建议保持 false。",
+    "default": false
   }
 }

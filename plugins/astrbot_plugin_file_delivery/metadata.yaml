@@ -1,0 +1,8 @@
+name: astrbot_plugin_file_delivery
+display_name: 受管文件回传
+desc: "把 file_vault 里的受管文件直接发回 QQ，默认只发给当前用户，不依赖改动第三方 QQ 工具插件。"
+version: "0.1.0"
+author: "Companion Starter Maintainers"
+repo: ""
+type: common
+astrbot_version: ">=4.18.2"

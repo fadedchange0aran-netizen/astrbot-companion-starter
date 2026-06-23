@@ -1,0 +1,212 @@
+{
+  "timezone": {
+    "description": "时区",
+    "type": "string",
+    "default": "Asia/Shanghai"
+  },
+  "enable_prompt_injection": {
+    "description": "是否启用该插件的时间/平台/连续性注入；切主时如需彻底停用旧链路可关闭",
+    "type": "bool",
+    "default": true
+  },
+  "enable_holiday_perception": {
+    "description": "启用节假日感知",
+    "type": "bool",
+    "default": true
+  },
+  "enable_anniversary_perception": {
+    "description": "启用纪念日/生日/整数天里程碑的日期语境提示",
+    "type": "bool",
+    "default": true
+  },
+  "enable_cycle_perception": {
+    "description": "启用生理期手填提醒；根据前端填写的上次开始日与周期天数，在超期时给机器人一个可轻问的提示",
+    "type": "bool",
+    "default": true
+  },
+  "enable_platform_perception": {
+    "description": "启用平台感知",
+    "type": "bool",
+    "default": true
+  },
+  "enable_stackchan_light_mode": {
+    "description": "为 StackChan 启用轻量会话策略；仍然是同一个机器人，但可单独覆盖模型并减少工具链开销",
+    "type": "bool",
+    "default": false
+  },
+  "stackchan_selected_provider": {
+    "description": "StackChan 专用 provider ID；留空则沿用 bridge / adapter 当前默认路由，例如 next/deepseek-v4-flash。该字段供 bridge 在发起 AstrBot 请求前读取，用于真正切换 provider。",
+    "type": "string",
+    "default": ""
+  },
+  "stackchan_selected_model": {
+    "description": "StackChan 专用模型 ID；留空则沿用默认聊天模型，例如 next/deepseek-v4-flash",
+    "type": "string",
+    "default": ""
+  },
+  "stackchan_disable_tools": {
+    "description": "StackChan 轻量模式下是否硬禁用工具；开启后会直接清空本轮可用工具集合",
+    "type": "bool",
+    "default": true
+  },
+  "owner_id": {
+    "description": "固定记忆归属 ID，单用户场景可填写 owner",
+    "type": "string",
+    "default": "owner"
+  },
+  "use_sender_id_as_owner": {
+    "description": "是否直接用发送者 ID 作为 owner_id；单用户跨平台场景通常建议关闭",
+    "type": "bool",
+    "default": false
+  },
+  "trusted_sender_ids": {
+    "description": "被视为 owner 本人的发送者 ID 列表；命中后才会注入私密纪念日提示",
+    "type": "list",
+    "default": [],
+    "items": {
+      "type": "string"
+    }
+  },
+  "shared_memory_root": {
+    "description": "共享记忆目录，留空则读取 astrbot_plugin_memory 的数据目录",
+    "type": "string",
+    "default": ""
+  },
+  "include_cross_platform_summary": {
+    "description": "是否注入最近跨平台交接摘要",
+    "type": "bool",
+    "default": true
+  },
+  "cross_platform_limit": {
+    "description": "最近跨平台摘要最多注入条数",
+    "type": "int",
+    "default": 2
+  },
+  "anniversary_notice_offsets": {
+    "description": "纪念日提醒窗口；默认当天、提前 1 天、提前 7 天",
+    "type": "list",
+    "default": [
+      0,
+      1,
+      7
+    ],
+    "items": {
+      "type": "int"
+    }
+  },
+  "anniversary_events": {
+    "description": "固定日期事件；支持完整日期 YYYY-MM-DD 或月日 MM-DD",
+    "type": "list",
+    "default": [],
+    "items": {
+      "type": "object",
+      "items": {
+        "name": {
+          "description": "事件名称",
+          "type": "string",
+          "default": ""
+        },
+        "kind": {
+          "description": "事件类型，如 birthday / anniversary / awakening_day",
+          "type": "string",
+          "default": "anniversary"
+        },
+        "event_date": {
+          "description": "事件日期，支持 YYYY-MM-DD 或 MM-DD",
+          "type": "string",
+          "default": ""
+        },
+        "recurrence": {
+          "description": "触发方式，支持 yearly 或 absolute",
+          "type": "string",
+          "default": "yearly"
+        },
+        "is_private": {
+          "description": "是否只对 owner / trusted sender 注入",
+          "type": "bool",
+          "default": true
+        }
+      }
+    }
+  },
+  "milestone_rules": {
+    "description": "里程碑规则；支持固定天数、每 50 天整数倍、每周年等模式，anchor_date 需要完整 YYYY-MM-DD",
+    "type": "list",
+    "default": [],
+    "items": {
+      "type": "object",
+      "items": {
+        "rule_type": {
+          "description": "规则类型：fixed_day_offset / every_n_days / every_n_years",
+          "type": "string",
+          "default": "every_n_days"
+        },
+        "label": {
+          "description": "固定天数规则的展示名称，如 250 天",
+          "type": "string",
+          "default": ""
+        },
+        "label_template": {
+          "description": "循环规则的展示模板，可用 {value} 占位，如 {value} 天 / {value} 周年",
+          "type": "string",
+          "default": ""
+        },
+        "anchor_date": {
+          "description": "基准起始日，必须是 YYYY-MM-DD",
+          "type": "string",
+          "default": ""
+        },
+        "days_offset": {
+          "description": "固定天数规则距离 anchor_date 的天数",
+          "type": "int",
+          "default": 250
+        },
+        "interval_days": {
+          "description": "every_n_days 规则的步长天数，如 50",
+          "type": "int",
+          "default": 50
+        },
+        "start_days": {
+          "description": "every_n_days 规则从第几天开始生效，默认与 interval_days 相同",
+          "type": "int",
+          "default": 50
+        },
+        "interval_years": {
+          "description": "every_n_years 规则的步长年数，如 1 表示每周年",
+          "type": "int",
+          "default": 1
+        },
+        "start_years": {
+          "description": "every_n_years 规则从第几年开始生效，默认与 interval_years 相同",
+          "type": "int",
+          "default": 1
+        },
+        "is_private": {
+          "description": "是否只对 owner / trusted sender 注入",
+          "type": "bool",
+          "default": true
+        }
+      }
+    }
+  },
+  "last_period_start_date": {
+    "description": "上次生理期开始日；留空则不启用该提示，格式为 YYYY-MM-DD，建议在 AstrBot 前端手动维护",
+    "type": "string",
+    "default": ""
+  },
+  "cycle_length_days": {
+    "description": "生理期询问阈值天数；默认 35，达到或超过该天数后机器人才会考虑轻问",
+    "type": "int",
+    "default": 35
+  },
+  "cycle_checkin_cooldown_days": {
+    "description": "超期后重复轻问的最小间隔天数；避免机器人每次聊天都追问",
+    "type": "int",
+    "default": 3
+  },
+  "cycle_is_private": {
+    "description": "是否只对 owner / trusted sender 注入生理期提示",
+    "type": "bool",
+    "default": true
+  }
+}

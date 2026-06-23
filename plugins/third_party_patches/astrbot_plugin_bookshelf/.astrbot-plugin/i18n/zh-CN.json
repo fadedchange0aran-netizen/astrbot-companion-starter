@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "display_name": "书架 Bookshelf",
+    "short_desc": "共读书架与章节阅读插件",
+    "desc": "支持上传 txt/epub、按章节切分、阅读进度、共读面板和插件页面阅读。"
+  },
+  "pages": {
+    "reader": {
+      "title": "共读"
+    }
+  }
+}

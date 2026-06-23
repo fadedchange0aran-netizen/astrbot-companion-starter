@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "display_name": "Bookshelf",
+    "short_desc": "Shared reading plugin for books and chapters",
+    "desc": "Upload txt/epub books, split chapters, track reading progress, and read current chapters in an AstrBot plugin page."
+  },
+  "pages": {
+    "reader": {
+      "title": "Reader"
+    }
+  }
+}

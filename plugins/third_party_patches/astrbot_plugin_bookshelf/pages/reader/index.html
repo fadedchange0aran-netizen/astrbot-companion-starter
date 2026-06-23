@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>共读</title>
+    <link rel="stylesheet" href="./styles.css?v=20260623-callmode" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <aside class="sidebar">
+        <div class="panel raccoon-panel">
+          <div class="panel-title-row">
+            <h1>🦝 共读小窝</h1>
+            <span class="badge">陪读助手在线</span>
+          </div>
+          <p class="muted">选书、上传、切章节，然后直接呼叫陪读助手去聊天目标里接着聊这一章。</p>
+        </div>
+
+        <section class="panel">
+          <div class="panel-title-row">
+            <h2>上传书籍</h2>
+            <span class="badge">txt / epub</span>
+          </div>
+          <form id="upload-form" class="stack">
+            <label class="field">
+              <span>书名</span>
+              <input id="upload-book-name" type="text" placeholder="留空时默认取文件名" />
+            </label>
+            <label class="field">
+              <span>文件</span>
+              <input id="upload-file" type="file" accept=".txt,.epub" />
+            </label>
+            <button id="upload-button" type="submit">上传到书架</button>
+          </form>
+        </section>
+
+        <section class="panel">
+          <div class="panel-title-row">
+            <h2>书架</h2>
+            <button id="refresh-button" class="ghost-button" type="button">刷新</button>
+          </div>
+          <div id="book-list" class="book-list"></div>
+        </section>
+      </aside>
+
+      <main class="content">
+        <section class="panel hero-panel">
+          <div class="hero-header">
+            <div>
+              <h2 id="book-title">还没有选书</h2>
+              <p id="book-meta" class="muted">先上传一本书，或者从左边书架里选一本。</p>
+            </div>
+            <div class="hero-actions">
+              <button id="prev-button" class="ghost-button" type="button">上一章</button>
+              <button id="next-button" class="ghost-button" type="button">下一章</button>
+            </div>
+          </div>
+          <div class="chapter-selector">
+            <label class="field inline-field">
+              <span>当前章节</span>
+              <select id="chapter-select"></select>
+            </label>
+          </div>
+        </section>
+
+        <section class="grid">
+          <article class="panel chapter-panel">
+            <div class="panel-title-row">
+              <h2 id="chapter-title">章节内容</h2>
+              <span id="chapter-stats" class="badge">0 字</span>
+            </div>
+            <div id="chapter-content" class="chapter-content empty">请选择一本书。</div>
+          </article>
+
+          <aside class="side-column">
+            <section class="panel">
+              <div class="panel-title-row">
+                <h2>呼叫陪读助手讨论</h2>
+                <span class="badge">聊天目标讨论</span>
+              </div>
+              <p class="muted small">陪读助手会结合当前章节、最近共读痕迹和之前已经主动聊过的内容，直接往目标会话里续上话题。</p>
+              <div id="qq-target-panel" class="qq-target-panel">
+                <label class="field">
+                  <span>目标会话 UMO</span>
+                  <input
+                    id="qq-target-input"
+                    type="text"
+                    placeholder="napcat_qq:FriendMessage:123456789"
+                    spellcheck="false"
+                    autocomplete="off"
+                  />
+                </label>
+                <div class="action-row compact-row">
+                  <button id="save-qq-target-button" class="ghost-button" type="button">记住这个目标</button>
+                  <span class="muted small">填一次后会保存在插件里，后面可直接一键呼叫。</span>
+                </div>
+                <label class="field">
+                  <span>章节上下文模式</span>
+                  <select id="call-context-mode-select">
+                    <option value="auto">自动</option>
+                    <option value="full">全文</option>
+                    <option value="excerpt">节选</option>
+                  </select>
+                </label>
+              </div>
+              <div class="action-row single-action-row">
+                <button id="call-aran-button" type="button">让陪读助手继续发消息</button>
+              </div>
+              <p id="call-footer-hint" class="muted small">短章会直接喂全文，长章会按开头、中段、结尾折中提供；同一目标会话下还会记住最近几次主动陪读记录。</p>
+            </section>
+
+            <section class="panel">
+              <div class="panel-title-row">
+                <h2>📝 最近共读痕迹</h2>
+                <span id="discussion-count" class="badge">0</span>
+              </div>
+              <div id="discussion-list" class="discussion-list empty">还没有笔记或读后感。</div>
+            </section>
+          </aside>
+        </section>
+      </main>
+    </div>
+
+    <div id="toast" class="toast" hidden></div>
+    <script type="module" src="./app.js?v=20260623-callmode"></script>
+  </body>
+</html>

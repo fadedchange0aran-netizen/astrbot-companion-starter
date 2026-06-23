@@ -1,0 +1,10 @@
+name: astrbot_plugin_bookshelf
+display_name: 书架 Bookshelf
+desc: 上传书籍文本，按章节切分存储，支持书架、目录、读章节、阅读进度、笔记、读后感、共读面板。
+version: 2.0.0
+author: Companion Starter Maintainers
+repo: "https://github.com/yussica1016/astrbot_plugin_bookshelf"
+type: common
+pages:
+  - name: reader
+    title: 共读

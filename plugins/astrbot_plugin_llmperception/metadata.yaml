@@ -1,0 +1,7 @@
+name: astrbot_plugin_llmperception
+display_name: 日期/生理期/StackChan 配置
+desc: 在对话前注入节假日、纪念日、里程碑和生理期等日期语境，也保留基础时间与平台感知。
+version: "1.0.0"
+author: Companion Starter Maintainers
+repo: ""
+type: common

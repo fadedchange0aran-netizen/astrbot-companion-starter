@@ -1,0 +1,74 @@
+{
+    "enable_merge_forward": {
+        "type": "bool",
+        "description": "启用消息合并转发",
+        "default": true,
+        "hint": "新版本QQ存在不支持查看嵌套消息的问题"
+    },
+    "enable_calibre": {
+        "type": "bool",
+        "description": "启用 Calibre-Web 电子书搜索",
+        "default": false,
+        "hint": "若启用需要部署 Calibre-Web 并配置服务的URL"
+    },
+    "enable_liber3": {
+        "type": "bool",
+        "description": "启用 Liber3 电子书搜索",
+        "default": true,
+        "hint": "默认启用，网络不连通时可禁用"
+    },
+    "enable_archive": {
+        "type": "bool",
+        "description": "启用 Archive.org 电子书搜索",
+        "default": true,
+        "hint": "默认启用，网络不连通时可禁用"
+    },
+    "enable_zlib": {
+        "type": "bool",
+        "description": "启用 Z-Library 电子书搜索",
+        "default": false,
+        "hint": "若启用需要配置 Z-Library 的登录账户"
+    },
+    "enable_annas": {
+        "type": "bool",
+        "description": "启用 Anna's Archive 电子书搜索",
+        "default": false,
+        "hint": "此搜索方式暂不支持直接下载，只能获得下载链接。"
+    },
+    "calibre_web_url": {
+        "type": "string",
+        "description": "calibre-web 地址",
+        "default": "http://127.0.0.1:8083",
+        "hint": "例如在同主机安装的 calibre-web，地址为 http://127.0.0.1:8083"
+    },
+    "zlib_email": {
+        "type": "string",
+        "description": "Z-Library 登录邮箱",
+        "default": "",
+        "hint": "登录 Z-Library 的邮箱"
+    },
+    "zlib_password": {
+        "type": "string",
+        "description": "Z-Library 登录密码",
+        "default": "",
+        "hint": "登录 Z-Library 的密码"
+    },
+    "enable_file_vault_copy": {
+        "type": "bool",
+        "description": "下载后的本地电子书是否自动转存到 file_vault",
+        "default": true,
+        "hint": "默认开启。会把本地下载成功的电子书复制到受管目录，避免临时文件被清理后无法再次处理。"
+    },
+    "file_vault_root": {
+        "type": "string",
+        "description": "file_vault 根目录",
+        "default": "",
+        "hint": "留空时默认使用 AstrBot 数据目录下的 data/file_vault。若现网有自定义挂载目录，可在这里显式指定。"
+    },
+    "max_results": {
+        "type": "string",
+        "description": "默认最大返回结果数量",
+        "default": "20",
+        "hint": "每次搜索默认返回的最大结果数量，函数工具搜索会默认使用此设置，命令搜索可覆盖此值，范围1-50"
+    }
+}

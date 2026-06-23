@@ -7,7 +7,13 @@
 - `astrbot_plugin_link_context`
 - `astrbot_plugin_media_parser`
 - `astrbot_plugin_continuous_message`
+- `astrbot_plugin_file_delivery`（可选）
+- `astrbot_plugin_llmperception`（可选）
+- `astrbot_plugin_bookshelf`（可选）
+- `astrbot_plugin_ebooks`（可选）
 - `adapter`
+- `bridges/stackchan`（可选）
+- `services/aranbox-mcp`（可选）
 
 ## 1. 安装 LivingMemory
 
@@ -108,7 +114,32 @@ cp .env.example .env
 uvicorn app.main:app --host 0.0.0.0 --port 8001
 ```
 
-## 5. 验证体验链路
+## 5. 可选启用 StackChan / MCP
+
+如果你还准备启用实用插件：
+
+- `plugins/astrbot_plugin_file_delivery`
+  - 适合把 `file_vault` 里的受管文件直接回传给当前会话或目标会话
+- `plugins/astrbot_plugin_llmperception`
+  - 适合给机器人补日期语境、生理期手填提醒和 StackChan 轻量模式配置
+- `plugins/third_party_patches/astrbot_plugin_bookshelf`
+  - 适合做共读、章节阅读和目标会话续聊
+- `plugins/third_party_patches/astrbot_plugin_ebooks`
+  - 适合多源电子书搜索下载，并把下载结果转存到 `file_vault`
+
+如果你还准备接 `StackChan`：
+
+- 查看 `bridges/stackchan/README.md`
+- 按 `.env.example` 填好 `STACKCHAN_*`
+- 再单独启动桥接服务
+
+如果你还准备启用 MCP 工具服务：
+
+- 查看 `services/aranbox-mcp/README.md`
+- 默认建议只启用 `daily + extended`
+- 暂时不要急着打开 `admin` 层和 `safe deploy`
+
+## 6. 验证体验链路
 
 建议依次验证：
 
@@ -120,7 +151,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8001
 
 如果上面五步都通过，这套最小体验包就已经基本成型了。
 
-## 6. 思考链显示建议
+## 7. 思考链显示建议
 
 如果你同时在用 QQ 和 `adapter` / RikkiHub，建议：
 

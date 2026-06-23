@@ -40,7 +40,7 @@ GROUP_DEFAULT_BLOCKED_TOOLS = {
     "astrbot_execute_python",
     "request_admin_tool_access",
     "run_admin_action_once",
-    "send_whisper_to_bia",
+    "send_pushplus_message",
     "send_email",
     "send_file_vault_item_via_email",
     "write_playground_file",
@@ -50,6 +50,27 @@ GROUP_DEFAULT_BLOCKED_TOOLS = {
     "rename_notion_page_tool",
     "manage_notion_todo_tool",
     "llm_publish_feed",
+}
+
+
+def _default_safe_deploy_control_config_path() -> Path:
+    for candidate in (
+        Path("/AstrBot/data/config/astrbot_plugin_safe_deploy_control_config.json"),
+        Path(os.environ.get("ASTRBOT_SAFE_DEPLOY_CONTROL_CONFIG", "")).expanduser() if os.environ.get("ASTRBOT_SAFE_DEPLOY_CONTROL_CONFIG") else None,
+    ):
+        if candidate is not None and candidate.exists():
+            return candidate
+    return Path("/AstrBot/data/config/astrbot_plugin_safe_deploy_control_config.json")
+
+
+SAFE_DEPLOY_CONTROL_CONFIG_PATH = _default_safe_deploy_control_config_path()
+ADMIN_ONCE_DIRECT_TOOL_ALLOWLIST = {
+    "run_admin_action_once",
+    "write_notion_page",
+    "update_notion_block_tool",
+    "delete_notion_block_tool",
+    "rename_notion_page_tool",
+    "manage_notion_todo_tool",
 }
 ROUTE_TOOL_ALLOWLISTS = {
     "ebook": {
@@ -155,15 +176,15 @@ RECENT_FOLLOWUP_PATTERNS = (
     r"发出去了吗",
 )
 DEFAULT_GROUP_NAME_WAKE_ALIASES = (
-    "阿然",
-    "然然",
+    "机器人",
+    "助手",
 )
 
 
 @register(
     PLUGIN_NAME,
     "Aran",
-    "给阿然提供 B站/小红书链接理解，以及最近一次工具成功结果感知。",
+    "给机器人提供 B站/小红书链接理解，以及最近一次工具成功结果感知。",
     "0.1.0",
 )
 class LinkContextPlugin(Star):
@@ -438,14 +459,18 @@ class LinkContextPlugin(Star):
             getattr(event, "_aran_original_message_str", "") or getattr(event, "message_str", "") or ""
         ).strip()
         route_name = self._detect_tool_route(event, request_text)
+        admin_grant = self._load_admin_once_grant()
         original_toolset = req.func_tool
         current_toolset = original_toolset
         applied_steps: list[str] = []
 
         if not event.is_private_chat():
+            deny_names = set(GROUP_DEFAULT_BLOCKED_TOOLS)
+            if admin_grant.get("active"):
+                deny_names -= ADMIN_ONCE_DIRECT_TOOL_ALLOWLIST
             group_filtered = self._toolset_with_filters(
                 current_toolset,
-                deny_names=GROUP_DEFAULT_BLOCKED_TOOLS,
+                deny_names=deny_names,
             )
             if not group_filtered.empty():
                 before_names = self._tool_names(current_toolset)
@@ -716,7 +741,7 @@ class LinkContextPlugin(Star):
     def _write_admin_once_grant(self, event: AstrMessageEvent, note: str) -> dict[str, Any]:
         now_ts = time.time()
         expires_at_ts = now_ts + ADMIN_ONCE_TTL_SECONDS
-        sender_id = str(event.get_sender_id() or "").strip()
+        sender_id = self._sender_id(event)
         sender_name = str(event.get_sender_name() or sender_id or "").strip()
         payload = {
             "granted": True,
@@ -743,6 +768,63 @@ class LinkContextPlugin(Star):
             return False
         self.admin_once_path.unlink(missing_ok=True)
         return True
+
+    @staticmethod
+    def _sender_id(event: AstrMessageEvent) -> str:
+        return str(event.get_sender_id() or "").strip() or "unknown"
+
+    def _load_safe_deploy_control_config(self) -> dict[str, Any]:
+        if not SAFE_DEPLOY_CONTROL_CONFIG_PATH.exists():
+            return {}
+        try:
+            raw = SAFE_DEPLOY_CONTROL_CONFIG_PATH.read_text(encoding="utf-8-sig")
+            payload = json.loads(raw or "{}")
+        except Exception:
+            return {}
+        return payload if isinstance(payload, dict) else {}
+
+    def _admin_once_allowed_sender_ids(self) -> set[str]:
+        raw_value = str(self._get_cfg("admin_once_allowed_sender_ids", "") or "").strip()
+        if not raw_value:
+            fallback = self._load_safe_deploy_control_config()
+            raw_value = str(fallback.get("allowed_sender_ids", "") or "").strip()
+        if not raw_value:
+            return set()
+        return {
+            item.strip()
+            for item in raw_value.split(",")
+            if item.strip()
+        }
+
+    def _admin_once_allow_anyone(self) -> bool:
+        raw_value = self._get_cfg("admin_once_allow_anyone", None)
+        if raw_value is not None:
+            return bool(raw_value)
+        fallback = self._load_safe_deploy_control_config()
+        return bool(fallback.get("allow_anyone", False))
+
+    def _admin_once_is_authorized(self, event: AstrMessageEvent) -> bool:
+        if self._admin_once_allow_anyone():
+            return True
+        sender_id = self._sender_id(event)
+        allowed_ids = self._admin_once_allowed_sender_ids()
+        return bool(sender_id and allowed_ids and sender_id in allowed_ids)
+
+    def _admin_once_unauthorized_message(self, event: AstrMessageEvent) -> str:
+        sender_id = self._sender_id(event)
+        allowed_ids = sorted(self._admin_once_allowed_sender_ids())
+        if allowed_ids:
+            return (
+                "你没有修改一次性管理授权的权限。\n"
+                f"- 当前 sender_id: {sender_id}\n"
+                f"- 已允许 sender_id: {'、'.join(allowed_ids)}"
+            )
+        return (
+            "当前还没有配置一次性管理授权管理员，所以默认拒绝修改。\n"
+            f"- 当前 sender_id: {sender_id}\n"
+            "- 请在 `astrbot_plugin_link_context` 配置里填写 `admin_once_allowed_sender_ids`，"
+            "或复用 `astrbot_plugin_safe_deploy_control` 里的 allowed_sender_ids。"
+        )
 
     def _load_media_parser_config(self) -> dict[str, Any]:
         path = self._media_parser_config_path()
@@ -1985,7 +2067,9 @@ class LinkContextPlugin(Star):
                 f"{req.system_prompt or ''}\n\n"
                 "[一次性管理授权]\n"
                 "用户刚刚明确授权你执行一次管理动作。"
-                "如果确实需要执行管理操作，只调用 run_admin_action_once，且默认只执行一次最小必要动作。"
+                "如果确实需要执行管理操作，优先直接调用一个最小必要的管理工具。"
+                "可直接调用的高权限工具仅限 run_admin_action_once 与 Notion 编辑相关工具。"
+                "一次性授权只够成功执行一次管理工具调用，完成后会自动失效。"
                 "如果当前问题不需要管理动作，就不要调用它。"
             )
         req.system_prompt = (
@@ -2182,29 +2266,35 @@ class LinkContextPlugin(Star):
             source="after_message_sent",
         )
 
-    @filter.permission_type(filter.PermissionType.ADMIN)
     @filter.command("管理一轮", alias={"/管理一轮"})
     async def grant_admin_once(self, event: AstrMessageEvent, note: str = ""):
+        if not self._admin_once_is_authorized(event):
+            yield event.plain_result(self._admin_once_unauthorized_message(event))
+            return
         payload = self._write_admin_once_grant(event, note)
         note_line = f"\n- 备注: {payload.get('note')}" if payload.get("note") else ""
         yield event.plain_result(
             "已开启一次性管理授权。\n"
             f"- 剩余次数: {payload.get('remaining_uses')}\n"
             f"- 有效期: {payload.get('remaining_seconds')} 秒{note_line}\n"
-            "接下来如果确实需要执行管理动作，阿然应只调用 run_admin_action_once，执行一次后会自动失效。"
+            "接下来如果确实需要执行管理动作，机器人应只调用 run_admin_action_once，执行一次后会自动失效。"
         )
 
-    @filter.permission_type(filter.PermissionType.ADMIN)
     @filter.command("取消管理授权", alias={"/取消管理授权"})
     async def clear_admin_once(self, event: AstrMessageEvent):
+        if not self._admin_once_is_authorized(event):
+            yield event.plain_result(self._admin_once_unauthorized_message(event))
+            return
         cleared = self._clear_admin_once_grant()
         if cleared:
             yield event.plain_result("已取消一次性管理授权。")
             return
         yield event.plain_result("当前没有生效中的一次性管理授权。")
 
-    @filter.permission_type(filter.PermissionType.ADMIN)
     @filter.command("管理授权状态", alias={"/管理授权状态"})
     async def admin_once_status(self, event: AstrMessageEvent):
+        if not self._admin_once_is_authorized(event):
+            yield event.plain_result(self._admin_once_unauthorized_message(event))
+            return
         payload = self._load_admin_once_grant()
         yield event.plain_result(json.dumps(payload, ensure_ascii=False, indent=2))

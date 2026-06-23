@@ -1,0 +1,38 @@
+{
+  "file_vault_root": {
+    "description": "受管文件库根目录",
+    "type": "string",
+    "hint": "AstrBot 容器内建议显式写 /AstrBot/data/file_vault；如果误填成宿主机挂载口径，插件会尝试按 ASTRBOT_HOST_DATA_ROOT 自动映射回容器路径。留空时会优先尝试容器内路径，再回退到宿主机路径和当前工作目录下的 data/file_vault。",
+    "default": ""
+  },
+  "flash_transfer_dir": {
+    "description": "QQ 发文件共享中转目录",
+    "type": "string",
+    "hint": "推荐填写一个同时挂到 AstrBot 与 QQ 适配容器的共享目录；留空时会在容器内尝试 docker cp 到目标 QQ 容器。",
+    "default": "/tmp/astrbot_flash"
+  },
+  "napcat_container_name": {
+    "description": "NapCat 容器名",
+    "type": "string",
+    "hint": "仅在未配置 flash_transfer_dir 且 AstrBot 运行在 Docker 中时，用于 docker cp 兜底。",
+    "default": "napcat"
+  },
+  "allowed_sender_ids": {
+    "description": "允许手动命令和跨用户转发的 sender_id 列表",
+    "type": "string",
+    "hint": "填逗号分隔的 sender_id，例如 123456,987654。未配置时默认只允许 LLM 工具按当前用户自回传，不允许手动命令。",
+    "default": ""
+  },
+  "allow_anyone": {
+    "description": "允许所有人使用手动命令",
+    "type": "bool",
+    "hint": "仅用于临时调试。生产环境建议保持 false。",
+    "default": false
+  },
+  "allow_cross_user_delivery": {
+    "description": "允许跨用户 QQ 转发",
+    "type": "bool",
+    "hint": "关闭时，显式填写的 user_id 如果不是当前发消息的人，会被拒绝，除非 sender 已在 allowed_sender_ids 中。",
+    "default": false
+  }
+}
