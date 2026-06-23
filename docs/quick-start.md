@@ -120,12 +120,26 @@ uvicorn app.main:app --host 0.0.0.0 --port 8001
 
 - `plugins/astrbot_plugin_file_delivery`
   - 适合把 `file_vault` 里的受管文件直接回传给当前会话或目标会话
+  - 最推荐给 AstrBot 和 NapCat 挂同一个共享目录，再把 `flash_transfer_dir` 指到这个共享目录
 - `plugins/astrbot_plugin_llmperception`
   - 适合给机器人补日期语境、生理期手填提醒和 StackChan 轻量模式配置
 - `plugins/third_party_patches/astrbot_plugin_bookshelf`
   - 适合做共读、章节阅读和目标会话续聊
 - `plugins/third_party_patches/astrbot_plugin_ebooks`
   - 适合多源电子书搜索下载，并把下载结果转存到 `file_vault`
+
+如果你准备启用 `file_delivery`，优先看：
+
+- `plugins/astrbot_plugin_file_delivery/README.md`
+
+其中最关键的是：
+
+1. `file_vault_root`
+   - 通常写 AstrBot 容器内的 `/AstrBot/data/file_vault`
+2. `flash_transfer_dir`
+   - 最推荐写成 AstrBot 和 NapCat 都能看到的共享目录，例如都挂到 `/tmp/astrbot_flash`
+3. `allowed_sender_ids`
+   - 只填你自己的 `sender_id`
 
 如果你还准备接 `StackChan`：
 
