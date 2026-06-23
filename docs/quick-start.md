@@ -131,6 +131,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8001
 如果你准备启用 `file_delivery`，优先看：
 
 - `plugins/astrbot_plugin_file_delivery/README.md`
+- [文件回传配置](file-delivery-setup.md)
 
 其中最关键的是：
 

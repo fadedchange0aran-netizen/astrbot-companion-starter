@@ -67,6 +67,7 @@
 
 - [快速开始](docs/quick-start.md)
 - [部署检查清单](docs/deployment-checklist.md)
+- [文件回传配置](docs/file-delivery-setup.md)
 - [记忆配置](docs/memory-setup.md)
 - [旧记忆导入](docs/legacy-memory-import.md)
 - [MemOS / Memos 迁移](docs/memos-migration.md)
