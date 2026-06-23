@@ -93,6 +93,10 @@
 
 ## 4. 启用 adapter
 
+如果你希望直接照着容器部署，而不是手动进目录启动，优先看：
+
+- [Docker Compose 示例](docker-compose-example.md)
+
 进入 `adapter/` 目录：
 
 ```bash

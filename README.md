@@ -66,6 +66,7 @@
 ## 文档
 
 - [快速开始](docs/quick-start.md)
+- [Docker Compose 示例](docs/docker-compose-example.md)
 - [部署检查清单](docs/deployment-checklist.md)
 - [文件回传配置](docs/file-delivery-setup.md)
 - [记忆配置](docs/memory-setup.md)
