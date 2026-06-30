@@ -20,7 +20,7 @@
     "default": 160
   },
   "auto_parse_links_on_request": {
-    "description": "用户消息里出现 B站/小红书/微博/抖音/Twitter(X) 链接时，自动解析并注入当前请求上下文",
+    "description": "用户消息里出现 B站/小红书/微博/抖音/Twitter(X)/闲鱼链接时，自动解析并注入当前请求上下文",
     "type": "bool",
     "default": true
   },

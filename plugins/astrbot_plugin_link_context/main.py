@@ -22,7 +22,7 @@ STATE_FILE_NAME = "recent_actions.json"
 SHARED_NOTICE_FILE_NAME = "aran_system_notices.jsonl"
 ADMIN_ONCE_FILE_NAME = "admin_once_access.json"
 ADMIN_ONCE_TTL_SECONDS = 600
-SUPPORTED_PLATFORMS = {"bilibili", "xiaohongshu", "weibo", "douyin", "twitter"}
+SUPPORTED_PLATFORMS = {"bilibili", "xiaohongshu", "weibo", "douyin", "twitter", "xianyu"}
 SUPPORTED_LINK_HOST_HINTS = (
     "bilibili.com",
     "b23.tv",
@@ -41,6 +41,9 @@ SUPPORTED_LINK_HOST_HINTS = (
     "www.twitter.com",
     "x.com",
     "www.x.com",
+    "m.tb.cn",
+    "www.goofish.com",
+    "h5.m.goofish.com",
 )
 URL_PATTERN = re.compile(r"https?://[^\s\"'<>]+", re.IGNORECASE)
 CONSUMER_ROUTE_ALWAYS_KEEP_TOOLS = {
@@ -196,7 +199,7 @@ DEFAULT_GROUP_NAME_WAKE_ALIASES = (
 @register(
     PLUGIN_NAME,
     "Aran",
-    "给机器人提供 B站/小红书/微博/抖音/Twitter(X) 链接理解，以及最近一次工具成功结果感知。",
+    "给机器人提供 B站/小红书/微博/抖音/Twitter(X)/闲鱼链接理解，以及最近一次工具成功结果感知。",
     "0.1.0",
 )
 class LinkContextPlugin(Star):
@@ -864,7 +867,7 @@ class LinkContextPlugin(Star):
             parser for parser in cfg.create_parsers() if getattr(parser, "name", "") in SUPPORTED_PLATFORMS
         ]
         if not parsers:
-            raise RuntimeError("media_parser 中没有可用的 B站/小红书/微博/抖音/Twitter(X) 解析器")
+            raise RuntimeError("media_parser 中没有可用的 B站/小红书/微博/抖音/Twitter(X)/闲鱼解析器")
         self._parser_manager = ParserManager(parsers)
         return self._parser_manager
 
@@ -2046,14 +2049,14 @@ class LinkContextPlugin(Star):
     @filter.llm_tool(name="read_link_context")
     async def read_link_context(self, event: AstrMessageEvent, text_or_url: str):
         """
-        读取 B站、小红书、微博、抖音或 Twitter(X) 链接的标题、作者、正文摘要和热评，让你可以在同一条回复里继续讨论。
+        读取 B站、小红书、微博、抖音、Twitter(X) 或闲鱼链接的标题、作者、正文摘要和热评，让你可以在同一条回复里继续讨论。
 
         Args:
             text_or_url(string): 用户发来的链接，或包含链接的整段文本
         """
         summary = await self._parse_link_context_text(text_or_url)
         if not summary:
-            return "没有识别到可解析的 B站、小红书、微博、抖音或 Twitter(X) 链接。"
+            return "没有识别到可解析的 B站、小红书、微博、抖音、Twitter(X) 或闲鱼链接。"
         self._remember_action(
             event,
             summary=(
